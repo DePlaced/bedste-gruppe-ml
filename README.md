@@ -17,7 +17,7 @@ Make sure you have **conda** installed, then go to:
 cd ml-mushroom-pipeline
 ```
 Then run:
-```bash
+```conda
 conda env create -f environment.yml
 ```
 
