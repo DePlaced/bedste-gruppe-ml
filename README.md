@@ -6,4 +6,4 @@ It combines **data preprocessing, model training, and visualization** into a sin
 
 ## 📦 Environment Setup
 
-To setup the environment got to the directoty: ml-mushroom-pipeline 
+To setup the environment got to the directory: ml-mushroom-pipeline 
