@@ -17,19 +17,19 @@ Make sure you have **conda** installed, then go to:
 cd ml-mushroom-pipeline
 ```
 Then run:
-```conda
+```bash
 conda env create -f environment.yml
 ```
 
 ### 2️⃣ Activate the environment
 
-```conda
+```bash
 conda activate ml-mushroom-pipeline
 ```
 
 ### 3️⃣ Verify installation
 
-```conda
+```bash
 conda list
 ```
 
@@ -57,6 +57,6 @@ PyCharm will now use this environment automatically for:
 - Look in the bottom-right corner of PyCharm — it should say: ml-mushroom-pipeline
 
 - You can also open PyCharm’s terminal (`View → Tool Windows → Terminal`) and run:
-```conda
+```bash
 conda info --envs
 ```
