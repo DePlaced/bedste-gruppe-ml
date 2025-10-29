@@ -19,5 +19,5 @@ conda activate ml-mushroom-pipeline
 ### 3️⃣ Verify installation
 
 ```bash
-conda activate ml-mushroom-pipeline
+conda list
 ```
