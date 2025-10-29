@@ -23,13 +23,13 @@ conda env create -f environment.yml
 
 ### 2️⃣ Activate the environment
 
-```bash
+```conda
 conda activate ml-mushroom-pipeline
 ```
 
 ### 3️⃣ Verify installation
 
-```bash
+```conda
 conda list
 ```
 
@@ -42,7 +42,7 @@ To make sure PyCharm always uses your **`ml-mushroom-pipeline`** Conda environme
 3. Click: Add Interpreter → Add Local Interpreter
 4. Choose: Select existing → Type:Conda
 5. In the path field, browse to your Conda environment’s Python executable, usually found at:
-```bash
+```
 C:\Users\<your_user>\miniconda3\envs\ml-mushroom-pipeline\python.exe
 ```
 6. Click OK, then Apply.
@@ -57,6 +57,6 @@ PyCharm will now use this environment automatically for:
 - Look in the bottom-right corner of PyCharm — it should say: ml-mushroom-pipeline
 
 - You can also open PyCharm’s terminal (`View → Tool Windows → Terminal`) and run:
-```bash
+```conda
 conda info --envs
 ```
