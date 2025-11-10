@@ -15,8 +15,9 @@ pipeline_runner:
 
   # === INFERENCE ===
   batch_size: 24                          # last N rows to build features
+  first_timestamp: "2024-08-23 06:00:00"
   time_increment: "1h"
-  num_inference_steps: 5
+  num_inference_steps: 1
 
 # ========= Inference output formatting =========
 inference:
