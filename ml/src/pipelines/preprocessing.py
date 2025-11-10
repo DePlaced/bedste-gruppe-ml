@@ -30,18 +30,9 @@ class PreprocessingPipeline:
     def _drop_duplicates(df: pd.DataFrame) -> pd.DataFrame:
         return df.drop_duplicates()
 
-    @staticmethod
-    def _impute_weather_minimal(df: pd.DataFrame) -> pd.DataFrame:
-        weather_cols = [c for c in ["temp_c", "feelslike_c", "precip_mm"] if c in df.columns]
-        if weather_cols:
-            df = df.copy()
-            df[weather_cols] = df[weather_cols].ffill().bfill()
-        return df
-
     # ---------- orchestrated run ----------
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
         df = self._drop_duplicates(df)
-        df = self._impute_weather_minimal(df)
 
         df = df.reset_index(drop=True)
         if self.cfg.get("column_mapping"):

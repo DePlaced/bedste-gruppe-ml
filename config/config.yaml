@@ -29,12 +29,6 @@ inference:
 # ========= Preprocessing =========
 preprocessing:
   column_mapping: {
-    'EDIBLE' : 0,
-    'POISONOUS' : 1,
-  }
-  columns_to_drop: {
-    "stalk-root", #many missing values
-    "veil-type"
   }
   drop_columns:
     - veil-type #only one category
