@@ -7,7 +7,6 @@ from pathlib import Path
 import argparse
 import pandas as pd
 import yaml
-import numpy as np
 
 # --- resolve important paths ---
 ROOT   = Path(__file__).resolve().parents[2]   # project root
@@ -31,8 +30,16 @@ def read_config(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def show_results(dm: DataManager, actual_col: str = "taxi_pickups", tail_rows: int = 10, plot: bool = False):
-    """Load predictions & production DB, merge on datetime, and show a concise summary."""
+def show_results(dm: DataManager, cfg: dict, tail_rows: int = 10, plot: bool = False):
+    """
+    Load predictions & production DB, merge on datetime, and show a concise summary.
+
+    For classification:
+      - actual_col = training.target.source_col (e.g. 'poisonous')
+      - prediction column contains labels (e.g. 'EDIBLE' / 'POISONOUS')
+    """
+    actual_col = cfg["training"]["target"]["source_col"]  # e.g. 'poisonous'
+
     preds  = dm.load_prediction_data()
     actual = dm.load_prod_data()
 
@@ -60,42 +67,32 @@ def show_results(dm: DataManager, actual_col: str = "taxi_pickups", tail_rows: i
         print("No matching timestamps between predictions and actuals.")
         return
 
-    err = merged["prediction"] - merged[actual_col]
-    mae = float(np.abs(err).mean())
-    rmse = float(np.sqrt((err ** 2).mean()))
+    # ---- Classification metrics (string labels) ----
+    correct = (merged["prediction"] == merged[actual_col])
+    accuracy = float(correct.mean())
 
-    print("\n========= Inference Summary =========")
+    print("\n========= Inference Summary (Classification) =========")
     print(f"Rows predicted: {len(preds)}")
     print(f"Rows matched with actuals: {len(merged)}")
-    print(f"MAE:  {mae:.2f}")
-    print(f"RMSE: {rmse:.2f}")
+    print(f"Accuracy: {accuracy:.4f}")
+
+    print("\nLabel distribution (actual vs predicted):")
+    print("Actual:\n", merged[actual_col].value_counts())
+    print("\nPredicted:\n", merged["prediction"].value_counts())
 
     print("\nLast predictions vs actuals:")
     print(merged.tail(tail_rows).to_string(index=False))
 
+    # Optional: very simple confusion table
+    try:
+        ct = pd.crosstab(merged[actual_col], merged["prediction"], rownames=["actual"], colnames=["predicted"])
+        print("\nConfusion table:\n", ct)
+    except Exception as e:
+        print(f"(Could not build confusion table: {e})")
+
+    # Plotting is only really meaningful for numeric regression, so skip by default
     if plot:
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib.dates as mdates
-
-            plt.figure(figsize=(12, 5))
-            plt.plot(merged["datetime"], merged[actual_col], label=f"Actual ({actual_col})", marker="o", linewidth=2)
-            plt.plot(merged["datetime"], merged["prediction"], label="Predicted", marker="s", linewidth=2)
-            plt.title(f"Predicted vs Actual (RMSE: {rmse:.2f})")
-            plt.xlabel("Time")
-            plt.ylabel("Value")
-            plt.legend()
-            plt.grid(True, alpha=0.3)
-
-            ax = plt.gca()
-            ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=10))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d %H:%M"))
-            plt.xticks(rotation=30, ha="right")
-            plt.tight_layout()
-            plt.show()
-        except Exception as e:
-            print(f"(Plot skipped: {e})")
-
+        print("(Plotting is disabled for classification-style string labels.)")
 
 if __name__ == "__main__":
     cfg = read_config(ROOT / "config" / "config.yaml")
@@ -135,4 +132,5 @@ if __name__ == "__main__":
     print("\nInference complete. Predictions saved to:", cfg["data_manager"]["predictions_path"])
 
     # Show summary (will print "No matching..." until the second run when actuals exist)
-    show_results(dm, actual_col="taxi_pickups", tail_rows=10, plot=False)
+    show_results(dm, cfg, tail_rows=10, plot=False)
+

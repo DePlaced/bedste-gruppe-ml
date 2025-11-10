@@ -28,7 +28,8 @@ class DataManager:
         if not os.path.exists(path):
             return pd.DataFrame()
         try:
-            return pd.read_csv(path, parse_dates=["datetime"])
+            print(path)
+            return pd.read_csv(path)
         except Exception:
             return pd.read_csv(path)
 
@@ -126,15 +127,9 @@ class DataManager:
         return df.tail(n).reset_index(drop=True)
 
     # ---------- enrich predictions with actuals ----------
-    def update_predictions_with_actuals(self, actual_col: str = "taxi_pickups") -> None:
-        """
-        Enrich predictions.csv with actuals and errors whenever they become available.
-        Adds/updates: ['actual', 'error', 'abs_error'].
-        Safe against re-running many times and duplicate labels.
-        Ensures integer-looking values write as integers in CSV by casting to Pandas Int64.
-        """
+    def update_predictions_with_actuals(self, actual_col: str = "poisonous") -> None:
         preds = self.load_prediction_data()
-        prod  = self.load_prod_data()
+        prod = self.load_prod_data()
 
         # Basic guards
         if preds.empty or prod.empty:
@@ -145,14 +140,14 @@ class DataManager:
             return
 
         preds = preds.copy()
-        prod  = prod.copy()
+        prod = prod.copy()
 
         # Parse datetimes
         preds["datetime"] = pd.to_datetime(preds["datetime"], errors="coerce")
-        prod["datetime"]  = pd.to_datetime(prod["datetime"], errors="coerce")
+        prod["datetime"] = pd.to_datetime(prod["datetime"], errors="coerce")
 
-        # Drop any previous enrichment columns to avoid duplicate labels after merge
-        preds = preds.drop(columns=["actual", "error", "abs_error"], errors="ignore")
+        # Drop previous enrichment columns to avoid duplicate labels after merge
+        preds = preds.drop(columns=["actual", "correct"], errors="ignore")
 
         # Merge latest actuals from production DB
         merged = preds.merge(
@@ -162,21 +157,10 @@ class DataManager:
             validate="one_to_one"
         ).rename(columns={actual_col: "actual"})
 
-        # To compute errors, make sure numeric
-        merged["prediction"] = pd.to_numeric(merged["prediction"], errors="coerce")
-        merged["actual"]     = pd.to_numeric(merged["actual"], errors="coerce")
-
-        # Compute errors (NaN if actual not available yet)
-        merged["error"]     = merged["prediction"] - merged["actual"]
-        merged["abs_error"] = merged["error"].abs()
+        # Mark whether prediction matches actual (where actual is known)
+        merged["correct"] = merged["prediction"] == merged["actual"]
 
         # De-duplicate on datetime just in case
         merged = merged.sort_values("datetime").drop_duplicates(subset=["datetime"], keep="last")
-
-        # ---- KEY: cast to nullable integers so CSV shows 10 (not 10.0), but keeps missing as <NA> ----
-        for col in ["prediction", "actual", "error", "abs_error"]:
-            if col in merged.columns:
-                merged[col] = pd.to_numeric(merged[col], errors="coerce").round()
-                merged[col] = merged[col].astype("Int64")  # nullable int: prints as plain int; supports <NA>
 
         self._write_csv(merged, self.pred_csv)

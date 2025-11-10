@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Flask inference API for the taxi pipeline (CSV-only), placed under ml/entrypoint/.
+Flask inference API for the mushroom classification pipeline (CSV-only), placed under ml/entrypoint/.
 
 Endpoints
 ---------
 GET  /health
 GET  /db/status
 GET  /predictions/tail?n=10
-POST /predict/next         -> take the next hour from real_time_data_prod.csv, append, predict t+1
-POST /predict/from-row     -> accept a full JSON row, append, predict t+1
+POST /predict/next         -> take the next unprocessed datetime from real_time_data_prod.csv, append to DB, predict
+POST /predict/from-row     -> accept a full JSON row (with 'datetime'), append to DB, predict
 """
+
 import os
 import sys
 from pathlib import Path
@@ -40,6 +41,7 @@ def read_config(path: Path) -> dict:
     with path.open("r") as f:
         return yaml.safe_load(f)
 
+
 def _load_csv(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
@@ -48,20 +50,27 @@ def _load_csv(path: Path) -> pd.DataFrame:
     except Exception:
         return pd.read_csv(path)
 
+
 def pick_next_row(df_rt: pd.DataFrame, df_db: pd.DataFrame, inc: pd.Timedelta) -> Dict[str, Any]:
     """
-    Choose the 'next' timestamp from the real-time stream:
-      - If DB has rows: next = max(DB.datetime) + inc
-      - Else: the first row in the real-time CSV
-    Return the row as a dict.
+    Choose the 'next' timestamp from the real-time stream for classification:
+
+      - If DB has rows:
+          next_ts = max(DB.datetime) + inc
+          pick the row in real_time_data_prod.csv with datetime == next_ts
+      - Else (DB empty):
+          use the first row in the real-time CSV (smallest datetime)
+
+    Returns that row as a plain dict (for PipelineRunner.predict_from_ui_row).
     """
     if df_rt.empty or ("datetime" not in df_rt.columns):
         raise ValueError("real_time_data_prod.csv is empty or lacks 'datetime' column.")
 
+    # DB has data: move forward in time
     if df_db is not None and not df_db.empty and ("datetime" in df_db.columns):
         db_max = pd.to_datetime(df_db["datetime"], errors="coerce").max()
         target_ts = db_max + inc
-        row = df_rt.loc[pd.to_datetime(df_rt["datetime"]) == target_ts]
+        row = df_rt.loc[pd.to_datetime(df_rt["datetime"], errors="coerce") == target_ts]
         if row.empty:
             raise ValueError(
                 f"No next row found at {target_ts}. "
@@ -69,8 +78,10 @@ def pick_next_row(df_rt: pd.DataFrame, df_db: pd.DataFrame, inc: pd.Timedelta) -
             )
         return row.iloc[0].to_dict()
 
-    # DB empty → start with the first row of the stream
-    return df_rt.sort_values("datetime").iloc[0].to_dict()
+    # DB empty → start with the earliest row of the stream
+    row = df_rt.sort_values("datetime").iloc[0]
+    return row.to_dict()
+
 
 def _to_native(obj):
     """
@@ -84,7 +95,7 @@ def _to_native(obj):
     if isinstance(obj, dict):
         return {k: _to_native(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
-        return [ _to_native(v) for v in obj ]
+        return [_to_native(v) for v in obj]
     return obj
 
 
@@ -104,9 +115,14 @@ def health():
 
 @app.get("/db/status")
 def db_status():
+    """
+    Show basic info about the production DB (database_prod.csv):
+      - number of rows
+      - min & max datetime
+    """
     db_path = ROOT / CFG["data_manager"]["prod_database_path"]
     df_db = _load_csv(db_path)
-    if df_db.empty:
+    if df_db.empty or "datetime" not in df_db.columns:
         return jsonify({"rows": 0, "min_datetime": None, "max_datetime": None, "path": str(db_path)}), 200
 
     dts = pd.to_datetime(df_db["datetime"], errors="coerce")
@@ -121,15 +137,25 @@ def db_status():
 
 @app.get("/predictions/tail")
 def predictions_tail():
+    """
+    Show the last N predictions from predictions.csv.
+    This is classification, so 'prediction' will typically be 'EDIBLE' / 'POISONOUS'
+    and may also contain 'actual' / 'correct' if update_predictions_with_actuals was run.
+    """
     try:
         n = int(request.args.get("n", 10))
     except Exception:
         n = 10
+
     pred_path = ROOT / CFG["data_manager"]["predictions_path"]
     df = _load_csv(pred_path)
     if df.empty:
         return jsonify({"rows": 0, "tail": [], "path": str(pred_path)}), 200
-    tail = df.sort_values("datetime").tail(n)
+
+    if "datetime" in df.columns:
+        df = df.sort_values("datetime")
+
+    tail = df.tail(n)
     payload = {
         "rows": int(len(df)),
         "tail": tail.to_dict(orient="records"),
@@ -141,7 +167,18 @@ def predictions_tail():
 @app.post("/predict/next")
 def predict_next():
     """
-    Simulate a UI click using the 'next' unseen hour from the real-time CSV.
+    Use the 'next' unseen datetime from real_time_data_prod.csv to simulate a streaming UI event.
+
+    Flow:
+      1) Determine next datetime based on production DB max(datetime) + time_increment.
+      2) Pick that row from real_time_data_prod.csv (which does NOT have 'poisonous').
+      3) PipelineRunner.predict_from_ui_row(...) will:
+           - append to production DB,
+           - preprocess,
+           - classify (EDIBLE/POISONOUS),
+           - save prediction to predictions.csv,
+           - backfill actuals from DB when available.
+      4) Return a compact JSON payload.
     """
     try:
         rt_path = ROOT / CFG["data_manager"]["real_time_data_prod_path"]
@@ -164,7 +201,9 @@ def predict_next():
 @app.post("/predict/from-row")
 def predict_from_row():
     """
-    Accept a full JSON row (must include 'datetime') and predict t+1.
+    Accept a full JSON row (must include 'datetime' and the same feature columns as training,
+    but NOT 'poisonous'), append it to the DB, run preprocessing + classification, save,
+    and return the prediction.
     """
     try:
         payload = request.get_json(silent=True) or {}

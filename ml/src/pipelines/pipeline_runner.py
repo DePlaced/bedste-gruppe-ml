@@ -15,8 +15,8 @@ from pipelines.inference import InferencePipeline
 class PipelineRunner:
     """
     Orchestrates the full life-cycle:
-      • TRAINING:   raw → preprocess → FE → train → save model
-      • INFERENCE:  (stream/UI row) append → last-N → preprocess → FE → predict t+1
+      • TRAINING:   raw → preprocess → train → save model
+      • INFERENCE:  (stream/UI row) append → last-N → preprocess → predict
                      → save prediction (shifted time) → persist DB → backfill actuals
     """
     def __init__(self, config: Dict[str, Any], data_manager: DataManager):
@@ -55,9 +55,9 @@ class PipelineRunner:
     def run_inference(self, current_timestamp: pd.Timestamp) -> None:
         """
         Single streaming step driven by a timestamp that must exist in the
-        real_time_data_prod.csv (the "incoming" feed).
+        real_time_data_prod.csv (the "incoming" feed").
         """
-        # 1) pick current incoming row
+        # 1) pick current incoming row (from real-time feed, which has NO 'poisonous')
         rt_row = self.dm.get_timestamp_data(self.rt_df, current_timestamp)
         if rt_row is None or rt_row.empty:
             raise ValueError(
@@ -65,17 +65,16 @@ class PipelineRunner:
                 "Ensure the streaming CSV contains that timestamp."
             )
 
-        # 2) update in-memory production DB
+        # 2) update in-memory production DB (prod DB DOES have 'poisonous' for older rows)
         self.prod_df = self.dm.append_data(self.prod_df, rt_row)
 
-        # 3) build batch for features
+        # 3) build batch for features (last-N rows) and preprocess (one-hot, etc.)
         n = int(self.cfg["pipeline_runner"]["batch_size"])
         batch = self.dm.get_n_last_points(self.prod_df, n)
         batch = self.prep.run(batch)
-        batch = self.fe.run(batch)
         if batch is None or batch.empty:
             raise ValueError(
-                "[inference] All rows contain NaNs after preprocessing/feature engineering. "
+                "[inference] All rows contain NaNs after preprocessing. "
                 "Increase batch_size in config or ensure streaming rows include required inputs."
             )
 
@@ -84,7 +83,7 @@ class PipelineRunner:
         if source_col in batch.columns:
             batch = batch.drop(columns=[source_col])
 
-        # 5) predict next hour (use last row)
+        # 5) predict (classification: label or probability depending on InferencePipeline)
         y_hat = self.inf.run(batch)
 
         # 6) format & save prediction; persist DB
@@ -98,8 +97,8 @@ class PipelineRunner:
     # ============================== INFERENCE (UI helper) ==============================
     def predict_from_ui_row(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Append ONE incoming UI row (must include 'datetime'), build features from last-N rows,
-        predict t+1, save, backfill actuals, and return a JSON-friendly payload.
+        Append ONE incoming UI row (must include 'datetime'), preprocess last-N rows,
+        predict, save, backfill actuals, and return a JSON-friendly payload.
         """
         if "datetime" not in row_dict:
             raise ValueError("Incoming UI row must include 'datetime'.")
@@ -111,14 +110,13 @@ class PipelineRunner:
             raise ValueError("Invalid 'datetime' in UI row; could not parse to timestamp.")
         self.prod_df = self.dm.append_data(self.prod_df, rt_row)
 
-        # 2) Build last-N batch and create features
+        # 2) Build last-N batch and preprocess
         n = int(self.cfg["pipeline_runner"]["batch_size"])
         batch = self.dm.get_n_last_points(self.prod_df, n)
         batch = self.prep.run(batch)
-        batch = self.fe.run(batch)
         if batch is None or batch.empty:
             raise ValueError(
-                "[inference] No usable rows after preprocessing/feature engineering. "
+                "[inference] No usable rows after preprocessing. "
                 "Check batch_size and that the input row contains the required columns."
             )
 
@@ -127,7 +125,7 @@ class PipelineRunner:
         if source_col in batch.columns:
             batch = batch.drop(columns=[source_col])
 
-        # 4) Predict next step (t+1 relative to the UI row's timestamp)
+        # 4) Predict (classification)
         current_ts = pd.to_datetime(row_dict["datetime"])
         y_hat = self.inf.run(batch)
         df_pred = self.post.run_inference(y_pred=y_hat, current_timestamp=current_ts)
@@ -139,9 +137,11 @@ class PipelineRunner:
 
         # 6) Produce a compact response for the API/UI — **return native Python types**
         pred_val = df_pred["prediction"].iloc[0]
+
         return {
             "input_timestamp": str(current_ts),
             "prediction_timestamp": str(df_pred["datetime"].iloc[0]),
-            "prediction": int(pred_val) if float(pred_val).is_integer() else float(pred_val),
+            # For classification: typically "EDIBLE" / "POISONOUS" or a probability
+            "prediction": pred_val,
             "used_rows": int(n),
         }
