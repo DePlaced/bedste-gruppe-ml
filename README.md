@@ -12,7 +12,7 @@ This project uses **Miniconda** for environment and dependency management, as we
 
 ### 1️⃣ Create the environment
 
-Make sure you have **conda** installed, then go to:
+Make sure you have **conda** installed, then go to **Anaconda Powershell Prompt** and go to this path in the project folder:
 ```bash
 cd ml-mushroom-pipeline
 ```
