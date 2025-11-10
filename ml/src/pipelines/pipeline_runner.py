@@ -7,7 +7,6 @@ import pandas as pd
 
 from common.data_manager import DataManager
 from pipelines.preprocessing import PreprocessingPipeline
-from pipelines.feature_engineering import FeatureEngineeringPipeline
 from pipelines.training import TrainingPipeline
 from pipelines.postprocessing import PostprocessingPipeline
 from pipelines.inference import InferencePipeline
