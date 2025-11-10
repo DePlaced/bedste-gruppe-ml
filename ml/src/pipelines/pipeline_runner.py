@@ -25,7 +25,6 @@ class PipelineRunner:
 
         # Shared steps
         self.prep = PreprocessingPipeline(config)
-        self.fe = FeatureEngineeringPipeline(config)
         self.post = PostprocessingPipeline(config)
 
         # === TRAINING ===
@@ -48,13 +47,6 @@ class PipelineRunner:
         df = self.prep.run(df)
         if df.empty:
             raise ValueError("[training] Dataframe empty after preprocessing.")
-
-        df = self.fe.run(df)
-        if df.empty:
-            raise ValueError(
-                "[training] Dataframe empty after feature engineering. "
-                "Likely all rows dropped due to initial NaNs from rolling/deltas."
-            )
 
         model = self.train.run(df)
         self.post.run_train(model)
