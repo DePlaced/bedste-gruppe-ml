@@ -40,7 +40,7 @@ feature_engineering:
 # ========= Training =========
 training:
   target:
-    source_col: taxi_pickups
+    source_col: poisonous
     horizon: 1
     target_name: target
   train_fraction: 0.8

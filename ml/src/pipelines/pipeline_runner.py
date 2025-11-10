@@ -80,7 +80,7 @@ class PipelineRunner:
             )
 
         # 4) drop raw source column to avoid unseen-at-fit features
-        source_col = self.cfg["training"]["target"]["source_col"]  # usually 'taxi_pickups'
+        source_col = self.cfg["training"]["target"]["source_col"]  # usually 'poisonous'
         if source_col in batch.columns:
             batch = batch.drop(columns=[source_col])
 
