@@ -7,10 +7,7 @@ class PreprocessingPipeline:
     """
     Minimal, time-series friendly preprocessing:
       1) Drop exact duplicates
-      2) Parse & sort datetime (if present)
-      3) Light imputation for weather (ffill → bfill)
-      4) Domain-based outlier clipping (min/max)
-      5) Column rename (optional) + column drop (from config)
+      2) Drop columns, that have been chosen for removable in the data analysis step
     """
     def __init__(self, config: Dict[str, Any]):
         self.cfg = config["preprocessing"]
