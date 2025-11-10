@@ -28,8 +28,6 @@ inference:
 
 # ========= Preprocessing =========
 preprocessing:
-  column_mapping: {
-  }
   drop_columns:
     - veil-type #only one category
     - stalk-root #many missing values

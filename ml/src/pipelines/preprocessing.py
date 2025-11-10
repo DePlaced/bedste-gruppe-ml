@@ -17,10 +17,6 @@ class PreprocessingPipeline:
 
     # ---------- helpers ----------
     @staticmethod
-    def rename_columns(df: pd.DataFrame, mapping: Dict[str, str]) -> pd.DataFrame:
-        return df.rename(columns=mapping)
-
-    @staticmethod
     def drop_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
         keep = [c for c in df.columns if c not in columns]
         return df[keep].copy()
@@ -35,8 +31,6 @@ class PreprocessingPipeline:
         df = self._drop_duplicates(df)
 
         df = df.reset_index(drop=True)
-        if self.cfg.get("column_mapping"):
-            df = self.rename_columns(df, self.cfg["column_mapping"])
         if self.cfg.get("drop_columns"):
             df = self.drop_columns(df, self.cfg["drop_columns"])
         return df
