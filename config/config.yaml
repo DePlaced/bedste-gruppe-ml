@@ -1,7 +1,7 @@
 # ========= Data (CSV) =========
 data_manager:
   # === TRAINING ===
-  csv_path: "data/raw_data/aalborg_taxi_raw_data.csv"
+  csv_path: "data/raw_data/mushroom_raw_data.csv"
 
   # === INFERENCE ===
   prod_database_path: "data/prod_data/database_prod.csv"              # auto-created
