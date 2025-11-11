@@ -1,5 +1,5 @@
 # ===============================================================
-# INFERENCE ENTRYPOINT (CSV streaming) — advances by DB state
+# INFERENCE ENTRYPOINT (batch evaluation over prod DB)
 # ===============================================================
 import os
 import sys
@@ -30,9 +30,9 @@ def read_config(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def show_results(dm: DataManager, cfg: dict, tail_rows: int = 10, plot: bool = False):
+def show_results(dm: DataManager, cfg: dict, tail_rows: int = 10) -> None:
     """
-    Load predictions & production DB, merge on datetime, and show a concise summary.
+    Load predictions & production DB, merge on row_id, and show a concise summary.
 
     For classification:
       - actual_col = training.target.source_col (e.g. 'poisonous')
@@ -44,27 +44,34 @@ def show_results(dm: DataManager, cfg: dict, tail_rows: int = 10, plot: bool = F
     actual = dm.load_prod_data()
 
     if preds is None or preds.empty:
-        print("No predictions found. Did the timestamps in config match your streaming CSV?")
+        print("No predictions found. Did you run inference without errors?")
         return
 
-    if "datetime" not in preds.columns or "datetime" not in actual.columns:
-        print("Missing 'datetime' column in predictions or production database.")
+    if "row_id" not in preds.columns:
+        print("Missing 'row_id' column in predictions.csv.")
+        return
+
+    if actual is None or actual.empty:
+        print("Production DB is empty; cannot compute accuracy.")
         return
 
     if actual_col not in actual.columns:
         print(f"Column '{actual_col}' not found in production DB. Available columns: {list(actual.columns)}")
         return
 
+    # Reset index on actual so we have a stable row_id to join on
+    actual_reset = actual.reset_index().rename(columns={"index": "row_id"})
+
     merged = pd.merge(
-        preds[["datetime", "prediction"]],
-        actual[["datetime", actual_col]],
-        on="datetime",
+        preds[["row_id", "prediction"]],
+        actual_reset[["row_id", actual_col]],
+        on="row_id",
         how="inner",
         validate="one_to_one"
-    ).sort_values("datetime")
+    ).sort_values("row_id")
 
     if merged.empty:
-        print("No matching timestamps between predictions and actuals.")
+        print("No matching row_id between predictions and actuals.")
         return
 
     # ---- Classification metrics (string labels) ----
@@ -80,26 +87,24 @@ def show_results(dm: DataManager, cfg: dict, tail_rows: int = 10, plot: bool = F
     print("Actual:\n", merged[actual_col].value_counts())
     print("\nPredicted:\n", merged["prediction"].value_counts())
 
-    print("\nLast predictions vs actuals:")
+    print("\nLast predictions vs actuals (by row_id):")
     print(merged.tail(tail_rows).to_string(index=False))
 
     # Optional: very simple confusion table
     try:
-        ct = pd.crosstab(merged[actual_col], merged["prediction"], rownames=["actual"], colnames=["predicted"])
+        ct = pd.crosstab(merged[actual_col], merged["prediction"],
+                         rownames=["actual"], colnames=["predicted"])
         print("\nConfusion table:\n", ct)
     except Exception as e:
         print(f"(Could not build confusion table: {e})")
 
-    # Plotting is only really meaningful for numeric regression, so skip by default
-    if plot:
-        print("(Plotting is disabled for classification-style string labels.)")
 
 if __name__ == "__main__":
     cfg = read_config(ROOT / "config" / "config.yaml")
 
-    parser = argparse.ArgumentParser(description="Inference runner")
-    parser.add_argument("--seed", action="store_true", help="Initialize rolling DB and clear predictions (one-time)")
-    parser.add_argument("--steps", type=int, default=None, help="Override num_inference_steps from config")
+    parser = argparse.ArgumentParser(description="Batch inference/evaluation runner")
+    parser.add_argument("--seed", action="store_true",
+                        help="Initialize production DB from training CSV and clear predictions (one-time)")
     args = parser.parse_args()
 
     dm = DataManager(cfg)
@@ -107,30 +112,42 @@ if __name__ == "__main__":
     # --- Seed ONLY if explicitly requested ---
     if args.seed:
         dm.initialize_prod_database()
-        print("Seeded rolling DB from training CSV and cleared predictions.")
-        # If you called with --seed only, you might want to exit here; keep going if you also set steps>0.
+        print("Seeded production DB from training CSV and cleared predictions.")
 
     runner = PipelineRunner(cfg, dm)
 
-    # Steps: CLI override wins; else config
-    steps = int(cfg["pipeline_runner"]["num_inference_steps"]) if args.steps is None else int(args.steps)
-    inc   = pd.Timedelta(cfg["pipeline_runner"]["time_increment"])
-
-    # --- Determine starting timestamp dynamically from DB state ---
+    # --- Load production DB ---
     prod_df = dm.load_prod_data()
-    if prod_df is not None and not prod_df.empty and "datetime" in prod_df.columns:
-        ts = pd.to_datetime(prod_df["datetime"], errors="coerce").max() + inc
-    else:
-        # Fallback to configured first_timestamp if DB is empty
-        ts = pd.to_datetime(cfg["pipeline_runner"]["first_timestamp"])
+    if prod_df is None or prod_df.empty:
+        print("Production DB is empty. Nothing to infer on. "
+              "Run with --seed to initialize from training CSV.")
+        sys.exit(0)
 
-    for i in range(steps):
-        print(f"[{i+1}/{steps}] Inference @ {ts}")
-        runner.run_inference(ts)
-        ts += inc  # move to the next hour for the next iteration
+    # --- Run predictions for ALL rows in production DB ---
+    tcfg = cfg["training"]["target"]
+    target_col = tcfg["source_col"]
 
-    print("\nInference complete. Predictions saved to:", cfg["data_manager"]["predictions_path"])
+    # We'll use the row index as row_id
+    prod_reset = prod_df.reset_index().rename(columns={"index": "row_id"})
 
-    # Show summary (will print "No matching..." until the second run when actuals exist)
-    show_results(dm, cfg, tail_rows=10, plot=False)
+    preds_rows = []
+    for _, row in prod_reset.iterrows():
+        row_id = int(row["row_id"])
 
+        # Build feature dict (drop target if present)
+        row_dict = row.drop(labels=["row_id"]).to_dict()
+        row_dict.pop(target_col, None)
+
+        result = runner.predict_from_features(row_dict)  # {"prediction": label}
+        preds_rows.append({"row_id": row_id, "prediction": result["prediction"]})
+
+    pred_df = pd.DataFrame(preds_rows)
+
+    # Overwrite predictions.csv with fresh predictions
+    pred_path = cfg["data_manager"]["predictions_path"]
+    os.makedirs(Path(pred_path).parent, exist_ok=True)
+    pred_df.to_csv(pred_path, index=False)
+    print(f"\nWrote {len(pred_df)} predictions to: {pred_path}")
+
+    # Show summary
+    show_results(dm, cfg, tail_rows=10)

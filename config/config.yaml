@@ -3,46 +3,27 @@ data_manager:
   # === TRAINING ===
   csv_path: "data/raw_data/mushroom_raw_data.csv"
 
-  # === INFERENCE ===
-  prod_database_path: "data/prod_data/database_prod.csv"              # auto-created
-  real_time_data_prod_path: "data/prod_data/real_time_data_prod.csv"  # your streaming feed (UI source)
-  predictions_path: "data/prod_data/predictions.csv"                  # auto-created/appended
+  # === PROD DB + PREDICTIONS (optional, for analysis/logging) ===
+  prod_database_path: "data/prod_data/database_prod.csv"
+  predictions_path: "data/prod_data/predictions.csv"
 
 # ========= Pipeline Runner =========
 pipeline_runner:
-  # === TRAINING ===
-  model_path: "models/final_gbr.pkl"
-
-  # === INFERENCE ===
-  batch_size: 24                          # last N rows to build features
-  first_timestamp: "2024-08-23 06:00:00"
-  time_increment: "1h"
-  num_inference_steps: 1
-
-# ========= Inference output formatting =========
-inference:
-  # Classification-friendly settings
-  output_type: "label"        # "label" | "probability"
-  positive_class: "POISONOUS" # used only if output_type == "probability"
-  threshold: 0.5              # if you later want to turn probability into a boolean
+  model_path: "models/final_gbc.pkl"
 
 # ========= Preprocessing =========
 preprocessing:
   drop_columns:
-    - veil-type   # only one category
-    - stalk-root  # many missing values
-    - datetime  # only used to differ between new incoming data from api
+    - veil-type   # removed because it is single-valued
+    - stalk-root  # removed because of many missing values
 
 # ========= Training =========
 training:
   target:
-    source_col: poisonous   # column in the CSV with EDIBLE/POISONOUS
-    horizon: 0              # 👈 classification: no time shift, same-row label
-    target_name: target
+    source_col: poisonous
   train_fraction: 0.8
 
-  # Used now by GradientBoostingClassifier (same params as regressor)
-  gbr_params:
+  gbc_params:
     n_estimators: 400
     learning_rate: 0.08
     max_depth: 3

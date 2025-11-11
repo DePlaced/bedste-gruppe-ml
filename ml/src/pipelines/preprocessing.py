@@ -1,68 +1,62 @@
+# src/pipelines/preprocessing.py
 import pandas as pd
 from typing import Dict, List, Any
 
 
 class PreprocessingPipeline:
     """
-    Preprocessing for mushroom dataset:
-      1) Drop duplicates
-      2) Drop columns listed in config["preprocessing"]["drop_columns"]
-      3) One-hot encode all feature columns (keep target raw)
-         - target column name comes from config["training"]["target"]["source_col"]
+    Simple preprocessing for classification:
+      1) Drop exact duplicates
+      2) Drop configured columns (e.g. veil-type, stalk-root)
+      3) One-hot encode all non-target columns
     """
-
     def __init__(self, config: Dict[str, Any]):
-        self.cfg = config
-        self.preprocessing_cfg = self.cfg["preprocessing"]
-        self.target_col = self.cfg["training"]["target"]["source_col"]
+        self.cfg = config["preprocessing"]
+        t_cfg = config.get("training", {}).get("target", {})
+        self.target_col = t_cfg.get("source_col")
 
     # ---------- helpers ----------
     @staticmethod
     def drop_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
-        """Drop unwanted columns if they exist."""
         keep = [c for c in df.columns if c not in columns]
         return df[keep].copy()
 
-    @staticmethod
-    def one_hot_encode_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
+    def one_hot_encode_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        One-hot encode all columns except the target column.
+        One-hot encode all columns except the target.
         Target is kept unchanged so training can still find it.
         """
-        # If target is missing, just encode everything
-        if target_col not in df.columns:
-            return pd.get_dummies(df, drop_first=False, dtype=int)
+        df = df.copy()
 
-        # Split features and target
-        feature_cols = [c for c in df.columns if c != target_col]
-        X = df[feature_cols]
-        y = df[target_col]
+        # Separate target if present
+        y = None
+        if self.target_col is not None and self.target_col in df.columns:
+            y = df[self.target_col]
+            df = df.drop(columns=[self.target_col])
 
-        # One-hot encode features
-        X_encoded = pd.get_dummies(X, drop_first=False, dtype=int)
+        # One-hot encode all remaining columns
+        x_encoded = pd.get_dummies(df, drop_first=False, dtype=int)
 
-        # Add target back
-        X_encoded[target_col] = y
+        # Add target back if we had it
+        if y is not None:
+            x_encoded[self.target_col] = y.values
 
-        return X_encoded
+        return x_encoded
 
+    # ---------- hygiene ----------
     @staticmethod
     def _drop_duplicates(df: pd.DataFrame) -> pd.DataFrame:
-        """Remove duplicate rows."""
         return df.drop_duplicates()
 
     # ---------- orchestrated run ----------
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Step 1: Drop duplicates
         df = self._drop_duplicates(df)
+        df = df.reset_index(drop=True)
 
-        # Step 2: Drop unwanted columns
-        drop_cols = self.preprocessing_cfg.get("drop_columns", [])
-        if drop_cols:
-            df = self.drop_columns(df, drop_cols)
+        # Drop configured columns (e.g. datetime, veil-type, stalk-root)
+        if self.cfg.get("drop_columns"):
+            df = self.drop_columns(df, self.cfg["drop_columns"])
 
-        # Step 3: One-hot encode all features, keeping target raw
-        df = self.one_hot_encode_features(df, self.target_col)
-
-        # Step 4: Reset index for cleanliness
-        return df.reset_index(drop=True)
+        # One-hot encode
+        df = self.one_hot_encode_features(df)
+        return df
