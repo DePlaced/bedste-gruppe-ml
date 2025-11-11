@@ -60,3 +60,49 @@ PyCharm will now use this environment automatically for:
 ```bash
 conda info --envs
 ```
+
+### 6️⃣ Train Model
+Open internal Terminal in PyCharm and run:
+```
+C:\Users\<user>\anaconda3\envs\ml-mushroom-pipeline\python.exe C:\<project_path>\bedste-gruppe-ml\ml\entrypoint\train.py 
+```
+
+### 7️⃣ Start API
+Open internal Terminal in PyCharm and run:
+```
+C:\Users\<user>\anaconda3\envs\ml-mushroom-pipeline\python.exe C:\<project_path>\bedste-gruppe-ml\ml\entrypoint\inference_api.py 
+```
+
+### 8️⃣ Available endpoints (json):
+```
+http://localhost:5001/predictions
+```
+#### GET:
+query options:
+ - n=10 (10 = amount of latest predictions wanted)
+#### POST:
+```
+{
+  "cap-shape": "CONVEX",
+  "cap-surface": "SMOOTH",
+  "cap-color": "WHITE",
+  "bruises": "BRUISES",
+  "odor": "NONE",
+  "gill-attachment": "FREE",
+  "gill-spacing": "CROWDED",
+  "gill-size": "NARROW",
+  "gill-color": "WHITE",
+  "stalk-shape": "TAPERING",
+  "stalk-surface-above-ring": "SMOOTH",
+  "stalk-surface-below-ring": "SMOOTH",
+  "stalk-color-above-ring": "WHITE",
+  "stalk-color-below-ring": "WHITE",
+  "veil-color": "WHITE",
+  "ring-number": "ONE",
+  "ring-type": "PENDANT",
+  "spore-print-color": "PURPLE",
+  "population": "SEVERAL",
+  "habitat": "WOODS"
+}
+
+```
