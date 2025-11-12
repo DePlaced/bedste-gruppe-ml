@@ -1,20 +1,19 @@
 # src/pipelines/training.py
 import os
 import json
-import numpy as np
 import pandas as pd
 from typing import Dict, Any
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-
+from sklearn.dummy import DummyClassifier
 
 class TrainingPipeline:
     """
     TRAINING:
       1) Use all engineered features except target
       2) Random train/test split (classification)
-      3) Train GBC (optionally grid-search)
+      3) Train GBC
       4) Save metrics
       5) Return model
     """
@@ -60,6 +59,30 @@ class TrainingPipeline:
         # ------- METRICS: accuracy + precision/recall/F1 -------
         y_pred = model.predict(X_test)
 
+        # ------- BASELINE: DummyClassifier -------
+        dcfg = self.cfg["training"].get("dummy", {"enabled": True, "strategy": "most_frequent", "random_state": 42})
+        dummy_metrics = None
+        if dcfg.get("enabled", True):
+            dummy = DummyClassifier(
+                strategy=dcfg.get("strategy", "most_frequent"),
+                random_state=dcfg.get("random_state", 42)
+            )
+            # Fit on the same split; Dummy ignores X but we pass it for API consistency
+            dummy.fit(X_train, y_train)
+            y_pred_dummy = dummy.predict(X_test)
+
+            acc_d = float(accuracy_score(y_test, y_pred_dummy))
+            precision_d, recall_d, f1_d, _ = precision_recall_fscore_support(
+                y_test, y_pred_dummy, average="weighted", zero_division=0
+            )
+            dummy_metrics = {
+                "accuracy": round(acc_d, 4),
+                "precision_weighted": round(float(precision_d), 4),
+                "recall_weighted": round(float(recall_d), 4),
+                "f1_weighted": round(float(f1_d), 4),
+                "strategy": dcfg.get("strategy", "most_frequent")
+            }
+
         acc = float(accuracy_score(y_test, y_pred))
 
         # Use weighted average so it works even if classes are imbalanced
@@ -70,12 +93,16 @@ class TrainingPipeline:
             zero_division=0
         )
 
-        metrics = {
+        model_metrics = {
             "accuracy": round(acc, 4),
             "precision_weighted": round(float(precision), 4),
             "recall_weighted": round(float(recall), 4),
             "f1_weighted": round(float(f1), 4),
         }
+
+        metrics = {"model": model_metrics}
+        if dummy_metrics is not None:
+            metrics["baseline_dummy"] = dummy_metrics
 
         metrics_path = self.cfg["reports"]["metrics_path"]
         os.makedirs(os.path.dirname(metrics_path), exist_ok=True)
