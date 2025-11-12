@@ -1,0 +1,30 @@
+###
+GET http://localhost:5001/predictions?n=10 HTTP/1.1
+Content-Type: application/json
+
+###
+POST http://localhost:5001/predictions HTTP/1.1
+Content-Type: application/json
+
+{
+  "cap-shape": "CONVEX",
+  "cap-surface": "SMOOTH",
+  "cap-color": "WHITE",
+  "bruises": "BRUISES",
+  "odor": "NONE",
+  "gill-attachment": "FREE",
+  "gill-spacing": "CROWDED",
+  "gill-size": "NARROW",
+  "gill-color": "WHITE",
+  "stalk-shape": "TAPERING",
+  "stalk-surface-above-ring": "SMOOTH",
+  "stalk-surface-below-ring": "SMOOTH",
+  "stalk-color-above-ring": "WHITE",
+  "stalk-color-below-ring": "WHITE",
+  "veil-color": "WHITE",
+  "ring-number": "ONE",
+  "ring-type": "PENDANT",
+  "spore-print-color": "PURPLE",
+  "population": "SEVERAL",
+  "habitat": "WOODS"
+}
