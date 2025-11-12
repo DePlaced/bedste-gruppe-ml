@@ -23,6 +23,10 @@ training:
     source_col: poisonous
     target_name: poisonous
   train_fraction: 0.7
+  dummy:
+    enabled: true
+    strategy: "most_frequent"
+    random_state: 42
 
 
   gbc_params:

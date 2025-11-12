@@ -49,7 +49,7 @@ class TrainingPipeline:
                 scoring="accuracy",
                 cv=5,
                 n_jobs=-1,
-                verbose=0,
+                verbose=2,
             )
             search.fit(X_train, y_train)
             model = search.best_estimator_
