@@ -43,40 +43,6 @@ class PipelineRunner:
         model = self.train.run(df)
         self.post.run_train(model)
 
-    # ============================== API INFERENCE ==============================
-    def predict_from_features(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Pure prediction (no DB logging):
-
-          - row_dict: feature dict (no 'poisonous', no 'id')
-          - returns: {
-                "prediction": <label>,
-                "confidence": <float or None>,
-                "class_probs": {label: prob, ...}
-            }
-        """
-        df = pd.DataFrame([row_dict]).copy()
-
-        # preprocess
-        df_prep = self.prep.run(df)
-
-        # drop target if present (shouldn't be)
-        source_col = self.cfg["training"]["target"]["source_col"]
-        if source_col in df_prep.columns:
-            df_prep = df_prep.drop(columns=[source_col])
-
-        inf_result = self.inf.run(df_prep)
-        y_hat = inf_result["label"]
-        confidence = inf_result.get("confidence")
-        class_probs = inf_result.get("class_probs", {})
-
-        return {
-            "prediction": y_hat,
-            "confidence": confidence,
-            "class_probs": class_probs,
-        }
-
-
     def predict_and_log(self, row_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
         API-style prediction:
