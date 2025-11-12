@@ -1,0 +1,59 @@
+{
+	"info": {
+		"_postman_id": "ef22f22a-1442-41ef-9030-fd6f0d3ab166",
+		"name": "MachineLearning 2025",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29833545"
+	},
+	"item": [
+		{
+			"name": "GetPredictions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}/predictions?n=10",
+					"host": [
+						"{{baseurl}}"
+					],
+					"path": [
+						"predictions"
+					],
+					"query": [
+						{
+							"key": "n",
+							"value": "10"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Predict",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"cap-shape\": \"CONVEX\",\r\n  \"cap-surface\": \"SMOOTH\",\r\n  \"cap-color\": \"WHITE\",\r\n  \"bruises\": \"BRUISES\",\r\n  \"odor\": \"NONE\",\r\n  \"gill-attachment\": \"FREE\",\r\n  \"gill-spacing\": \"CROWDED\",\r\n  \"gill-size\": \"NARROW\",\r\n  \"gill-color\": \"WHITE\",\r\n  \"stalk-shape\": \"TAPERING\",\r\n  \"stalk-surface-above-ring\": \"SMOOTH\",\r\n  \"stalk-surface-below-ring\": \"SMOOTH\",\r\n  \"stalk-color-above-ring\": \"WHITE\",\r\n  \"stalk-color-below-ring\": \"WHITE\",\r\n  \"veil-color\": \"WHITE\",\r\n  \"ring-number\": \"ONE\",\r\n  \"ring-type\": \"PENDANT\",\r\n  \"spore-print-color\": \"PURPLE\",\r\n  \"population\": \"SEVERAL\",\r\n  \"habitat\": \"WOODS\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseurl}}/predictions",
+					"host": [
+						"{{baseurl}}"
+					],
+					"path": [
+						"predictions"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
