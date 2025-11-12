@@ -104,5 +104,4 @@ query options:
   "population": "SEVERAL",
   "habitat": "WOODS"
 }
-
 ```
