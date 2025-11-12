@@ -33,10 +33,10 @@ class PipelineRunner:
         if df is None or df.empty:
             raise ValueError(
                 "[training] Loaded dataframe is empty. "
-                "Check data_manager.csv_path and the file integrity."
             )
 
         df = self.prep.run(df)
+
         if df.empty:
             raise ValueError("[training] Dataframe empty after preprocessing.")
 
@@ -61,10 +61,10 @@ class PipelineRunner:
         df = pd.DataFrame([row_dict]).copy()
         df.insert(0, "id", row_id)
 
-        # 3) preprocess (id will be dropped by preprocessing drop_columns)
+        # 3) preprocess
         df_prep = self.prep.run(df)
 
-        # 4) drop target if present (shouldn't be at inference)
+        # 4) drop target if present
         source_col = self.cfg["training"]["target"]["source_col"]  # 'poisonous'
         if source_col in df_prep.columns:
             df_prep = df_prep.drop(columns=[source_col])
