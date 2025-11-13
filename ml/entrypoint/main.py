@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 """
-Flask inference API for the mushroom classification pipeline (no streaming).
+Flask inference API for the mushroom classification pipeline
 
 Endpoints
 ---------
 GET  /health
-GET  /predictions/tail?n=10   (optional, if you log predictions)
-POST /predict      -> accept a full JSON row, predict
+GET  /predictions?n=10
+POST /predict
 """
 
 import os
@@ -16,7 +15,6 @@ from flask import Flask, request, jsonify
 import pandas as pd
 import numpy as np
 import yaml
-import traceback
 
 # --------- Resolve project paths ---------
 ROOT   = Path(__file__).resolve().parents[2]  # project root
@@ -68,12 +66,10 @@ CFG = read_config(ROOT / "config" / "config.yaml")
 DM  = DataManager(CFG)
 RUNNER = PipelineRunner(CFG, DM)
 
-
 # ---------------- Routes ----------------
 @app.get("/")
 def health():
     return jsonify({"status": "ok"}), 200
-
 
 @app.get("/predictions")
 def predictions():
@@ -105,8 +101,6 @@ def predictions():
 
     return jsonify(_to_native(payload)), 200
 
-
-
 @app.post("/predictions")
 def predict():
     try:
@@ -116,11 +110,10 @@ def predict():
 
         RUNNER.run_prediction(payload)
 
-        return jsonify(_to_native({"status": "success"})), 200
+        return jsonify({"status": "success"}), 200
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 # ---------------- Main ----------------
 if __name__ == "__main__":

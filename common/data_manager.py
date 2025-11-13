@@ -1,10 +1,6 @@
-# ===============================================================
-# DataManager
-# ===============================================================
 import os
 import pandas as pd
 from typing import Dict, Any
-
 
 class DataManager:
     def __init__(self, config: Dict[str, Any]):

@@ -1,4 +1,3 @@
-# ml/entrypoint/train.py
 import os
 import sys
 from pathlib import Path
@@ -17,11 +16,9 @@ os.chdir(ROOT)
 from common.data_manager import DataManager
 from pipelines.pipeline_runner import PipelineRunner
 
-
 def read_config(path: Path) -> dict:
     with path.open("r") as f:
         return yaml.safe_load(f)
-
 
 if __name__ == "__main__":
     cfg = read_config(ROOT / "config" / "config.yaml")
