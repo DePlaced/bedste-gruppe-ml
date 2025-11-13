@@ -3,7 +3,7 @@ data_manager:
   # === TRAINING ===
   raw_data_path: "data/raw_data/mushroom_raw_data.csv"
 
-  # === PROD DB + PREDICTIONS (optional, for analysis/logging) ===
+  # === PROD DB + PREDICTIONS
   prod_database_path: "data/prod_data/database_prod.csv"
   predictions_path: "data/prod_data/predictions.csv"
 
@@ -23,7 +23,7 @@ preprocessing:
     - ring-number
     - cap-surface
     - cap-color
-    - cape-shape
+    - cap-shape
     - veil-color
     - gill-attachment
 
