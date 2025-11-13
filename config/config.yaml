@@ -1,7 +1,7 @@
 # ========= Data (CSV) =========
 data_manager:
   # === TRAINING ===
-  csv_path: "data/raw_data/mushroom_raw_data.csv"
+  raw_data_path: "data/raw_data/mushroom_raw_data.csv"
 
   # === PROD DB + PREDICTIONS (optional, for analysis/logging) ===
   prod_database_path: "data/prod_data/database_prod.csv"
