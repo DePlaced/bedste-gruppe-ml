@@ -4,12 +4,6 @@ from typing import Dict, List, Any
 
 
 class PreprocessingPipeline:
-    """
-    Simple preprocessing for classification:
-      1) Drop exact duplicates
-      2) Drop configured columns (e.g. veil-type, stalk-root)
-      3) One-hot encode all non-target columns
-    """
     def __init__(self, config: Dict[str, Any]):
         self.cfg = config["preprocessing"]
         t_cfg = config.get("training", {}).get("target", {})
@@ -43,20 +37,32 @@ class PreprocessingPipeline:
 
         return x_encoded
 
-    # ---------- hygiene ----------
     @staticmethod
     def _drop_duplicates(df: pd.DataFrame) -> pd.DataFrame:
         return df.drop_duplicates()
 
-    # ---------- orchestrated run ----------
-    def run(self, df: pd.DataFrame) -> pd.DataFrame:
+    # ---------- TRAINING ----------
+    def train(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Drop duplicate rows
         df = self._drop_duplicates(df)
         df = df.reset_index(drop=True)
 
-        # Drop configured columns (e.g. datetime, veil-type, stalk-root)
+        # Drop configured columns
         if self.cfg.get("drop_columns"):
             df = self.drop_columns(df, self.cfg["drop_columns"])
 
         # One-hot encode
         df = self.one_hot_encode_features(df)
+
+        return df
+
+    # ---------- INFERENCE ----------
+    def inference(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Drop configured columns - just because it's annoying to change the body of the raw json coming from the api endpoint
+        if self.cfg.get("drop_columns"):
+            df = self.drop_columns(df, self.cfg["drop_columns"])
+
+        # One-hot encode
+        df = self.one_hot_encode_features(df)
+
         return df

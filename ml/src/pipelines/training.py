@@ -100,9 +100,7 @@ class TrainingPipeline:
             "f1_weighted": round(float(f1), 4),
         }
 
-        metrics = {"model": model_metrics}
-        if dummy_metrics is not None:
-            metrics["baseline_dummy"] = dummy_metrics
+        metrics = {"model": model_metrics, "baseline_dummy": dummy_metrics}
 
         metrics_path = self.cfg["reports"]["metrics_path"]
         os.makedirs(os.path.dirname(metrics_path), exist_ok=True)

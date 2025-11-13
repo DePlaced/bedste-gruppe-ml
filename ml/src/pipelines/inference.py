@@ -24,17 +24,17 @@ class InferencePipeline:
     def __init__(self, config: Dict[str, Any]):
         self.cfg = config
 
-    def run(self, x: pd.DataFrame) -> Dict[str, Any]:
+    def run(self, df_prep: pd.DataFrame) -> Dict[str, Any]:
         model_path = self.cfg["pipeline_runner"]["model_path"]
         model = joblib.load(model_path)
 
         expected = getattr(model, "feature_names_in_", None)
 
         if expected is None:
-            x_aligned = x.copy()
+            x_aligned = df_prep.copy()
         else:
             expected = list(expected)
-            x_aligned = x.copy()
+            x_aligned = df_prep.copy()
 
             # 1) Add missing columns (0 for one-hot dummies)
             for col in expected:
@@ -69,13 +69,9 @@ class InferencePipeline:
             classes = getattr(model, "classes_", None)     # class labels
 
             if classes is not None:
-                class_probs = {
-                    str(cls): float(p) for cls, p in zip(classes, proba)
-                }
                 confidence = float(np.max(proba))
 
         return {
             "label": y_pred,
             "confidence": confidence,
-            "class_probs": class_probs,
         }

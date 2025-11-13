@@ -12,11 +12,11 @@ POST /predict      -> accept a full JSON row, predict
 import os
 import sys
 from pathlib import Path
-
 from flask import Flask, request, jsonify
 import pandas as pd
 import numpy as np
 import yaml
+import traceback
 
 # --------- Resolve project paths ---------
 ROOT   = Path(__file__).resolve().parents[2]  # project root
@@ -77,16 +77,10 @@ def health():
 
 @app.get("/predictions")
 def predictions():
-    """
-    Show the last N predictions from predictions.csv
-    """
-    try:
-        n = int(request.args.get("n", 10))
-    except Exception:
-        n = 10
+    n = int(request.args.get("n", 10))
 
     pred_path = ROOT / CFG["data_manager"]["predictions_path"]
-    df = _load_csv(pred_path)
+    df = DM.load_prediction_data()
     if df.empty:
         return jsonify({"rows": 0, "tail": []}), 200
 
@@ -100,24 +94,18 @@ def predictions():
 
 @app.post("/predictions")
 def predict():
-    """
-    Accept a full JSON row (same feature columns as training, but NOT 'poisonous'),
-    append it to the production DB, run preprocessing + classification,
-    log the prediction in predictions.csv, and return {id, prediction}.
-    """
     try:
         payload = request.get_json(silent=True) or {}
         if not payload:
-            return jsonify({"status": "error", "message": "Empty or invalid JSON payload"}), 400
+            return jsonify({"status": "bad", "reason": "Empty or invalid JSON payload"}), 400
 
-        # Ignore any datetime the client might send
-        payload.pop("datetime", None)
+        RUNNER.run_prediction(payload)
 
-        result = RUNNER.predict_and_log(payload)
-        return jsonify(_to_native({**result})), 200
+        return jsonify(_to_native({"status": "success"})), 200
 
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 # ---------------- Main ----------------
 if __name__ == "__main__":

@@ -12,9 +12,10 @@ class DataManager:
         self.cfg = config
         dm = self.cfg["data_manager"]
         # === TRAINING ===
-        self.raw_csv = dm["csv_path"]
-        # === PROD DB + PREDICTIONS ===
+        self.raw_csv = dm["raw_data_path"]
+        # === PROD DB ===
         self.prod_db_csv = dm["prod_database_path"]
+        # === PREDICTIONS ===
         self.pred_csv = dm["predictions_path"]
 
     # ------------------- CSV I/O -------------------
@@ -28,32 +29,15 @@ class DataManager:
     @staticmethod
     def _write_csv(df: pd.DataFrame, path: str) -> None:
         """Write a DataFrame to CSV, creating parent dirs if needed."""
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dir_ = os.path.dirname(path)
+        if dir_:
+            os.makedirs(dir_, exist_ok=True)
         df.to_csv(path, index=False)
+
 
     # ================= TRAINING =================
     def load_raw_csv(self) -> pd.DataFrame:
-        """Load the training CSV."""
         return self._read_csv(self.raw_csv)
-
-    def initialize_prod_database(self) -> None:
-        """
-        Initialize production DB from TRAINING CSV,
-        and clear any previous predictions.
-
-        Adds an 'id' column (0..N-1) to the prod DB.
-        """
-        df = self._read_csv(self.raw_csv)
-        if df.empty:
-            raise ValueError("Training CSV is empty; cannot seed prod DB.")
-
-        df = df.reset_index(drop=True)
-        df.insert(0, "id", range(len(df)))  # stable ID per row
-
-        self._write_csv(df, self.prod_db_csv)
-
-        if os.path.exists(self.pred_csv):
-            os.remove(self.pred_csv)
 
     # ================= PROD DB =================
     def load_prod_data(self) -> pd.DataFrame:
@@ -65,12 +49,6 @@ class DataManager:
         self._write_csv(df, self.prod_db_csv)
 
     def append_row_to_prod(self, row_dict: Dict[str, Any]) -> int:
-        """
-        Append a single incoming row (dict) to the production DB.
-
-        - Generates a new integer 'id'.
-        - Returns that 'id' so predictions can be linked.
-        """
         prod = self.load_prod_data()
         new_row = pd.DataFrame([row_dict])
 
@@ -81,11 +59,6 @@ class DataManager:
             self.save_prod_data(new_row)
             return 0
 
-        # Ensure prod has an 'id' column; if not, create one
-        if "id" not in prod.columns:
-            prod = prod.reset_index(drop=True)
-            prod.insert(0, "id", range(len(prod)))
-
         next_id = int(prod["id"].max()) + 1
         new_row.insert(0, "id", next_id)
 
@@ -93,6 +66,7 @@ class DataManager:
         for col in prod.columns:
             if col not in new_row.columns:
                 new_row[col] = pd.NA
+
         # Ensure prod has any new columns from new_row
         for col in new_row.columns:
             if col not in prod.columns:
@@ -108,28 +82,16 @@ class DataManager:
         """Load the predictions CSV."""
         return self._read_csv(self.pred_csv)
 
-    def save_predictions(self, df_pred: pd.DataFrame) -> None:
-        """
-        Append prediction rows to predictions CSV.
-        If file doesn't exist, write with header; otherwise append without.
-        """
+    def save_predictions(self, prediction: pd.DataFrame) -> None:
         path = self.pred_csv
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         if not os.path.exists(path):
-            df_pred.to_csv(path, index=False, header=True, mode="w")
+            prediction.to_csv(path, index=False, header=True, mode="w")
         else:
-            df_pred.to_csv(path, index=False, header=False, mode="a")
+            prediction.to_csv(path, index=False, header=False, mode="a")
 
-    def update_predictions_with_actuals(self, actual_col: str = "poisonous") -> None:
-        """
-        Enrich predictions.csv with actual labels for classification.
-        Works by joining on 'id'.
-
-        Adds/updates:
-          - 'actual'   : label from prod DB (e.g. 'EDIBLE'/'POISONOUS')
-          - 'correct'  : bool, prediction == actual (where actual is not null)
-        """
+    def update_predictions_with_actuals(self, actual_col: str) -> None:
         preds = self.load_prediction_data()
         prod  = self.load_prod_data()
 

@@ -1,2 +1,2 @@
-id,prediction,confidence,actual,correct
-0,EDIBLE,0.9919534037003012
+id,prediction,confidence
+4,EDIBLE,0.989870251190991
