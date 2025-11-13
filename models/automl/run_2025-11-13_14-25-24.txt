@@ -1,0 +1,21 @@
+Best estimator : xgboost
+Best config    : {'n_estimators': 37, 'max_leaves': 4, 'min_child_weight': 53.47428307459673, 'learning_rate': 1.0, 'subsample': 0.5292735442906019, 'colsample_bylevel': 0.17607757724392603, 'colsample_bytree': 0.01, 'reg_alpha': 1.3307498059736025, 'reg_lambda': 500.61864885707246}
+best metric
+Best F1 (FLAML): 0.9978
+F1 score (valid) : 0.9967
+Accuracy (valid) : 0.9967
+Time budget      : 1800 sec
+Actual runtime   : 1800.0 sec
+
+{'lgbm': {'n_estimators': 16, 'num_leaves': 4, 'min_child_samples': 96, 'learning_rate': 0.09550057669642134, 'log_max_bin': 4, 'colsample_bytree': 0.1143503006539491, 'reg_alpha': 0.018320378160054062, 'reg_lambda': 35.35763742514872}, 'xgboost': {'n_estimators': 37, 'max_leaves': 4, 'min_child_weight': 53.47428307459673, 'learning_rate': 1.0, 'subsample': 0.5292735442906019, 'colsample_bylevel': 0.17607757724392603, 'colsample_bytree': 0.01, 'reg_alpha': 1.3307498059736025, 'reg_lambda': 500.61864885707246}, 'rf': {'n_estimators': 4, 'max_leaves': 4, 'max_features': 1.0, 'criterion': 'entropy'}, 'extra_tree': {'n_estimators': 4, 'max_leaves': 4, 'max_features': 1.0, 'criterion': 'entropy'}, 'lrl1': {'C': 1.9999999999999998}}
+============== Leaderboard (validation metrics) ==============
+ estimator     F1 Accuracy refit_secs
+      lrl1 0.9805   0.9803       4.77
+      lgbm 0.9662   0.9655       5.03
+   xgboost 0.9662   0.9655       5.03
+        rf 0.9662   0.9655       4.99
+extra_tree 0.9662   0.9655       4.96
+
+Saved best model to: models\automl\best_model.pkl
+Point pipeline_runner.model_path to this file if you want to serve it.
+

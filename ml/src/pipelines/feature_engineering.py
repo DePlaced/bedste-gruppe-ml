@@ -20,7 +20,6 @@ class FeatureEngineeringPipeline:
         self.target_col = t_cfg.get("source_col")
 
     # ---------- helpers ----------
-    @staticmethod
     def _separate_target(self, df: pd.DataFrame):
         """Split df into (X, y) based on target_col."""
         if self.target_col is not None and self.target_col in df.columns:

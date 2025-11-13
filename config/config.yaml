@@ -9,7 +9,7 @@ data_manager:
 
 # ========= Pipeline Runner =========
 pipeline_runner:
-  model_path: "models/final_gbc.pkl"
+  model_path: "models/extra_trees.pkl"
 
 # ========= Preprocessing =========
 preprocessing:
@@ -32,21 +32,25 @@ training:
   target:
     source_col: poisonous
     target_name: poisonous
-  train_fraction: 0.7
+  train_fraction: 0.8
   dummy:
     enabled: true
     strategy: "most_frequent"
     random_state: 42
 
-model_type: "extra_trees"
+  model_type: "extra_trees"
 
-extra_trees_params:
-  n_estimators: 4
-  max_leaf_nodes: 4
-  max_features: 0.8527957659399003
-  criterion: "entropy"
-  random_state: 42
-  n_jobs: -1
+  extra_trees_params:
+    n_estimators: 4
+    max_leaf_nodes: 4
+    max_features: 0.8527957659399003
+    criterion: "entropy"
+    random_state: 42
+    n_jobs: -1
+
+  calibration:
+    method: "isotonic"
+    cv: 5
 
 # ========= Reports =========
 reports:
