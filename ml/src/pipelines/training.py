@@ -1,14 +1,11 @@
-# src/pipelines/training.py
 import os
 import json
-from typing import Dict, Any
-
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.dummy import DummyClassifier
-
+from typing import Dict, Any
 
 class TrainingPipeline:
     """

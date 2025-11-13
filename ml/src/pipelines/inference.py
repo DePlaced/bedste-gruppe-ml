@@ -1,5 +1,3 @@
-# ml/src/pipelines/inference.py
-
 import joblib
 import pandas as pd
 import numpy as np
@@ -8,9 +6,8 @@ from typing import Dict, Any
 
 class InferencePipeline:
     """
-    Loads the trained model and returns prediction info from a prepared input.
+     Loads the trained model and returns prediction and metadata from a prepared input.
     """
-
     def __init__(self, config: Dict[str, Any]):
         self.cfg = config
 

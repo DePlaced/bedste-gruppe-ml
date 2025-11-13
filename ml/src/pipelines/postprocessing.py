@@ -1,17 +1,13 @@
-# ===============================================================
-# postprocessing.py
-# TRAINING: save the model
-# INFERENE: get the label and confidence percentage from the result
-# ===============================================================
 from typing import Dict, Any
 import os
 import joblib
 import pandas as pd
 
-from common.data_manager import DataManager
-
-
 class PostprocessingPipeline:
+    """
+     TRAINING: save the model
+     INFERENCE: get the label and confidence percentage from the result
+    """
     def __init__(self, config: Dict[str, Any]):
         self.cfg = config
 

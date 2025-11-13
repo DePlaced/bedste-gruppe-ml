@@ -1,15 +1,11 @@
-# ml/src/pipelines/pipeline_runner.py
-
 from typing import Dict, Any
-import pandas as pd
-
 from common.data_manager import DataManager
 from pipelines.preprocessing import PreprocessingPipeline
 from pipelines.training import TrainingPipeline
 from pipelines.postprocessing import PostprocessingPipeline
 from pipelines.inference import InferencePipeline
 from pipelines.feature_engineering import FeatureEngineeringPipeline
-
+import pandas as pd
 
 class PipelineRunner:
     """

@@ -1,10 +1,12 @@
-# src/pipelines/preprocessing.py
 
 import pandas as pd
 from typing import Dict, List, Any
 
-
 class PreprocessingPipeline:
+    """
+     TRAINING: drop duplicates, reset index, drop configured columns
+     INFERENCE: drop configured columns
+    """
     def __init__(self, config: Dict[str, Any]):
         self.cfg = config["preprocessing"]
         t_cfg = config.get("training", {}).get("target", {})
@@ -22,12 +24,6 @@ class PreprocessingPipeline:
 
     # ---------- TRAINING ----------
     def training(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Preprocessing for training:
-          - drop duplicates
-          - reset index
-          - drop configured columns
-        """
         df = self._drop_duplicates(df)
         df = df.reset_index(drop=True)
 
@@ -39,10 +35,6 @@ class PreprocessingPipeline:
 
     # ---------- INFERENCE ----------
     def inference(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Preprocessing for inference:
-          - drop configured columns
-        """
         if self.cfg.get("drop_columns"):
             df = self.drop_columns(df, self.cfg["drop_columns"])
 
