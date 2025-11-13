@@ -5,7 +5,7 @@ AutoML for classification using FLAML.
 What it does
 ------------
 1) Loads your CSV -> runs your Preprocessing + FeatureEngineering
-2) Chronological split (train_fraction from config)
+2) Chronological split (mushroom_fraction from config)
 3) Runs FLAML with a time budget you choose (default 180 sec)
 4) Reports:
    - Total time budget + actual runtime
@@ -15,11 +15,11 @@ What it does
 
 Run
 ---
-conda activate ml-taxi-pipeline
+conda activate ml-mushroom-pipeline
 pip install flaml
 # optional (recommended): pip install lightgbm xgboost catboost
 
-python tools/automl_flaml.py --config config/config.yaml --metric f1 --time_budget 300
+python tools/automl_flaml_classification.py --config config/config.yaml --metric f1 --time_budget 300
 """
 
 import argparse
