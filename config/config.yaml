@@ -16,6 +16,16 @@ preprocessing:
   drop_columns:
     - veil-type   # removed because it is single-valued
     - stalk-root  # removed because of many missing values
+    - stalk-shape
+    - stalk-color-below-ring
+    - stalk-color-above-ring
+    - gill-color
+    - ring-number
+    - cap-surface
+    - cap-color
+    - cape-shape
+    - veil-color
+    - gill-attachment
 
 # ========= Training =========
 training:
