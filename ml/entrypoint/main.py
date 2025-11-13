@@ -78,16 +78,33 @@ def health():
 @app.get("/predictions")
 def predictions():
     n = int(request.args.get("n", 10))
-    df = DM.load_prediction_data()
-    if df.empty:
-        return jsonify({"rows": 0, "tail": []}), 200
 
-    tail = df.tail(n)
+    df_pred = DM.load_prediction_data()
+    if df_pred.empty:
+        return jsonify({"rows": 0, "predictions": []}), 200
+
+    df_prod = DM.load_prod_data()
+
+    if "id" not in df_pred.columns or "id" not in df_prod.columns:
+        return jsonify({"error": "Both prediction and prod data must have an 'id' column."}), 500
+
+    df_merged = df_pred.merge(
+        df_prod,
+        on="id",
+        how="left",
+        suffixes=("_pred", "_prod")
+    )
+
+    # 4) Get last n rows from the merged frame
+    tail = df_merged.tail(n)
+
     payload = {
-        "rows": int(len(df)),
-        "predictions": tail.to_dict(orient="records"),
+        "rows": int(len(df_pred)),
+        "predictions": tail.to_dict(orient="records")
     }
+
     return jsonify(_to_native(payload)), 200
+
 
 
 @app.post("/predictions")
