@@ -78,8 +78,6 @@ def health():
 @app.get("/predictions")
 def predictions():
     n = int(request.args.get("n", 10))
-
-    pred_path = ROOT / CFG["data_manager"]["predictions_path"]
     df = DM.load_prediction_data()
     if df.empty:
         return jsonify({"rows": 0, "tail": []}), 200

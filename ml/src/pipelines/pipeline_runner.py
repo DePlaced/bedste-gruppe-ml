@@ -10,7 +10,7 @@ from pipelines.preprocessing import PreprocessingPipeline
 from pipelines.training import TrainingPipeline
 from pipelines.postprocessing import PostprocessingPipeline
 from pipelines.inference import InferencePipeline
-from pipelines.featureengineering import FeatureEngineeringPipeline
+from pipelines.feature_engineering import FeatureEngineeringPipeline
 
 
 class PipelineRunner:
