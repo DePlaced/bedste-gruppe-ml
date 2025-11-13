@@ -1,0 +1,15 @@
+{
+  "model": {
+    "accuracy": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0
+  },
+  "baseline_dummy": {
+    "accuracy": 0.518,
+    "precision_weighted": 0.2684,
+    "recall_weighted": 0.518,
+    "f1_weighted": 0.3536,
+    "strategy": "most_frequent"
+  }
+}
