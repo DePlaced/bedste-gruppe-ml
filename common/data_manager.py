@@ -1,6 +1,5 @@
 # ===============================================================
-# DataManager — TRAINING + optional logging (CSV only)
-# Path: ml/src/common/data_manager.py
+# DataManager
 # ===============================================================
 import os
 import pandas as pd
@@ -21,19 +20,16 @@ class DataManager:
     # ------------------- CSV I/O -------------------
     @staticmethod
     def _read_csv(path: str) -> pd.DataFrame:
-        """Read a CSV; return empty DataFrame if file doesn't exist."""
         if not os.path.exists(path):
             return pd.DataFrame()
         return pd.read_csv(path)
 
     @staticmethod
     def _write_csv(df: pd.DataFrame, path: str) -> None:
-        """Write a DataFrame to CSV, creating parent dirs if needed."""
         dir_ = os.path.dirname(path)
         if dir_:
             os.makedirs(dir_, exist_ok=True)
         df.to_csv(path, index=False)
-
 
     # ================= TRAINING =================
     def load_raw_csv(self) -> pd.DataFrame:
@@ -53,7 +49,6 @@ class DataManager:
         new_row = pd.DataFrame([row_dict])
 
         if prod.empty:
-            # First row in prod DB
             new_row = new_row.reset_index(drop=True)
             new_row.insert(0, "id", 0)
             self.save_prod_data(new_row)
@@ -90,38 +85,3 @@ class DataManager:
             prediction.to_csv(path, index=False, header=True, mode="w")
         else:
             prediction.to_csv(path, index=False, header=False, mode="a")
-
-    def update_predictions_with_actuals(self, actual_col: str) -> None:
-        preds = self.load_prediction_data()
-        prod  = self.load_prod_data()
-
-        if preds.empty or prod.empty:
-            return
-
-        if "id" not in preds.columns or "id" not in prod.columns:
-            return
-
-        if actual_col not in prod.columns:
-            return
-
-        preds = preds.copy()
-        prod  = prod.copy()
-
-        # Drop previous enrichment columns to avoid duplicates
-        preds = preds.drop(columns=["actual", "correct"], errors="ignore")
-
-        merged = preds.merge(
-            prod[["id", actual_col]],
-            on="id",
-            how="left",
-            validate="one_to_one"
-        ).rename(columns={actual_col: "actual"})
-
-        # correct = prediction == actual (when both exist)
-        merged["correct"] = merged["prediction"] == merged["actual"]
-
-        # Sort and drop potential duplicate ids
-        merged = merged.sort_values("id").drop_duplicates(subset=["id"], keep="last")
-
-        # Save back to predictions.csv
-        self._write_csv(merged, self.pred_csv)
