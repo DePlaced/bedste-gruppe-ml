@@ -58,7 +58,7 @@ def read_config(path: Path) -> dict:
 def build_supervised_frame(cfg: Dict[str, Any]) -> pd.DataFrame:
     csv_path = cfg["data_manager"]["raw_data_path"]
     df = pd.read_csv(csv_path)
-    df = PreprocessingPipeline(cfg).run(df)
+    df = PreprocessingPipeline(cfg).training(df)
     return df
 
 

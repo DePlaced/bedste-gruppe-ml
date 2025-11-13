@@ -10,12 +10,13 @@ from pipelines.preprocessing import PreprocessingPipeline
 from pipelines.training import TrainingPipeline
 from pipelines.postprocessing import PostprocessingPipeline
 from pipelines.inference import InferencePipeline
+from pipelines.featureengineering import FeatureEngineeringPipeline
 
 
 class PipelineRunner:
     """
-        TRAINING: raw → preprocess → training → postprocess → save model
-        INFERENCE: raw JSON → preprocess → inference → postprocess → save input and prediction
+        TRAINING: raw → preprocess → feature engineering → training → postprocess → save model
+        INFERENCE: raw JSON → preprocess → feature engineering → inference → postprocess → save input and prediction
     """
     def __init__(self, config: Dict[str, Any], data_manager: DataManager):
         self.cfg = config
@@ -23,6 +24,7 @@ class PipelineRunner:
 
         self.prep = PreprocessingPipeline(config)
         self.post = PostprocessingPipeline(config)
+        self.fe = FeatureEngineeringPipeline(config)
         self.train = TrainingPipeline(config)
         self.inf = InferencePipeline(config)
 
@@ -31,15 +33,16 @@ class PipelineRunner:
         df = self.dm.load_raw_csv()
 
         # 1) preprocess
-        df = self.prep.train(df)
+        df = self.prep.training(df)
 
-        # 2) feature engineering
+        # 2) feature engineering - does nothing
+        df = self.fe.training(df)
 
         # 3) training
         model = self.train.run(df)
 
         # 4) postprocess
-        self.post.train(model)
+        self.post.training(model)
 
     # ============================== INFERENCE ==============================
     def run_prediction(self, row_dict: Dict[str, Any]) -> None:
@@ -48,8 +51,8 @@ class PipelineRunner:
         # 1) preprocess
         df_prep = self.prep.inference(df)
 
-        # 2) feature engineering
-
+        # 2) feature engineering - does nothing
+        df = self.fe.inference(df)
 
         # 3) inference
         prediction = self.inf.run(df_prep)

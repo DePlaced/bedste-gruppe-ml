@@ -42,7 +42,7 @@ class PreprocessingPipeline:
         return df.drop_duplicates()
 
     # ---------- TRAINING ----------
-    def train(self, df: pd.DataFrame) -> pd.DataFrame:
+    def training(self, df: pd.DataFrame) -> pd.DataFrame:
         # Drop duplicate rows
         df = self._drop_duplicates(df)
         df = df.reset_index(drop=True)

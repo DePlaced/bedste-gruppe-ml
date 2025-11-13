@@ -16,7 +16,7 @@ class PostprocessingPipeline:
         self.cfg = config
 
     # ----------------------------- TRAINING -----------------------------
-    def train(self, model) -> None:
+    def training(self, model) -> None:
         model_path = self.cfg["pipeline_runner"]["model_path"]
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         joblib.dump(model, model_path)
