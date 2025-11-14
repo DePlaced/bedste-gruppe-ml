@@ -1,16 +1,16 @@
 {
   "model": {
-    "accuracy": 0.9569,
-    "precision_weighted": 0.9594,
-    "recall_weighted": 0.9569,
-    "f1_weighted": 0.9569,
-    "brier_score": 0.031007
+    "accuracy": 0.9809,
+    "precision_weighted": 0.9816,
+    "recall_weighted": 0.9809,
+    "f1_weighted": 0.9809,
+    "brier_score": 0.015873
   },
   "baseline_dummy": {
-    "accuracy": 0.5182,
-    "precision_weighted": 0.2685,
-    "recall_weighted": 0.5182,
-    "f1_weighted": 0.3537,
+    "accuracy": 0.4991,
+    "precision_weighted": 0.4997,
+    "recall_weighted": 0.4991,
+    "f1_weighted": 0.4992,
     "strategy": "most_frequent"
   }
 }

@@ -80,8 +80,6 @@ class TrainingPipeline:
         )
 
         model.fit(X_train, y_train)
-
-        # --------- PREDICTIONS ----------
         y_pred = model.predict(X_test)
 
         # --------- BASELINE: DummyClassifier ----------
@@ -95,7 +93,7 @@ class TrainingPipeline:
                 strategy=dcfg.get("strategy", "most_frequent"),
                 random_state=dcfg.get("random_state", 42)
             )
-            # Dummy ignores X but we pass it for API consistency
+            # Dummy ignores X
             dummy.fit(X_train, y_train)
             y_pred_dummy = dummy.predict(X_test)
 
