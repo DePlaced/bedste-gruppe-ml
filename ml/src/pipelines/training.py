@@ -50,12 +50,6 @@ class TrainingPipeline:
             stratify=y
         )
 
-        # --------- SAVE TEST SPLIT FOR ANALYSIS TOOLS ----------
-        os.makedirs("data/debug", exist_ok=True)
-        df_test_dbg = X_test.copy()
-        df_test_dbg["__target__"] = y_test.values
-        df_test_dbg.to_csv("data/debug/test_set.csv", index=False)
-
         # --------- MAIN MODEL: ExtraTreesClassifier ----------
         tr_cfg = self.cfg["training"]
 
